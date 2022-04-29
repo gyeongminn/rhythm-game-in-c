@@ -1,5 +1,5 @@
 
-!youtube[flk778sG75g]
+https://www.youtube.com/watch?v=flk778sG75g
 
 # 소개
 > 1학년 텀프로젝트 과제로 만들었던 리듬게임입니다.
