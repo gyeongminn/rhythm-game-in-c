@@ -1,5 +1,5 @@
 # Rhythm Game in C Language
-[![Video Label](http://img.youtube.com/vi/flk778sG75g/0.jpg)]
+![Video Label](http://img.youtube.com/vi/flk778sG75g/0.jpg)
 
 ---
 
