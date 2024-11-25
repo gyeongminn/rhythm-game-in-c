@@ -11,6 +11,8 @@ extern char backBuffer[SCR_HEIGHT][4];
 extern const char* rhythmGameArt[19];
 
 // UI 관련 함수
+void initializeConsole();
+
 void drawBox(int x1, int y1, int x2, int y2);
 void removeBox(int x1, int y1, int x2, int y2);
 void renderBuffer(void);

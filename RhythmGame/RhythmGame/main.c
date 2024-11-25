@@ -1,10 +1,9 @@
 #include "game_ui.h"
 #include "utils.h"
 
-// 메인 함수
 int main(void)
 {
-	removeCursor();
+    initializeConsole();
 	while (1)
 	{
 		drawMainMenu();

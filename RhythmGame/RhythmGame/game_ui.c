@@ -510,3 +510,9 @@ void showOptions(void)
 		}
 	}
 }
+
+void initializeConsole()
+{
+	removeCursor();
+	SetConsoleTitleA("Rhythm Game - Gyeongmin Lee");
+}

@@ -29,7 +29,7 @@ void changeTextColor(int fgColor, int bgColor)
 	SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), fgColor | (bgColor << 4));
 }
 
-// 화면 클리어 및 색상 변경
+// 화면 색상 변경
 void changeWindowColor(int text_color, int bg_color)
 {
 	char cmd[100];
@@ -37,6 +37,7 @@ void changeWindowColor(int text_color, int bg_color)
 	system(cmd);
 }
 
+// 화면 클리어
 void clearWindow()
 {
 	system("cls");
