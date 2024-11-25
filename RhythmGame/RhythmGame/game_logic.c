@@ -284,7 +284,7 @@ void writeNoteMode(int songIndex)
 
 	// 종료
 	isGameRunning = FALSE;
-	stopSong();
+        stopSong();
 	changeTextColor(WHITE, BLACK);
 	clearWindow();
 	moveCursor(35, 10);
@@ -325,14 +325,11 @@ void stopSong()
 // 키보드 입력 쓰레드 생성 함수
 void createKeyPressThreads()
 {
-    int indices[4];
-    for (int t = 0; t < 4; t++)
-    {
-        indices[t] = t;
-        if (_beginthreadex(NULL, 0, keyPressHandler, &indices[t], 0, NULL) == 0)
-        {
-            perror("Failed to create thread");
-        }
-        Sleep(10); // 스레드 생성 안정성을 위해 딜레이
-    }
+	unsigned int threadIDs[4];
+	int indices[4] = {0, 1, 2, 3};
+	for (int t = 0; t < 4; t++)
+	{
+		_beginthreadex(NULL, 0, keyPressHandler, &indices[t], 0, &threadIDs[t]);
+		Sleep(10);
+	}
 }
