@@ -1,6 +1,10 @@
 #ifndef CONSTANTS_H
 #define CONSTANTS_H
 
+// BOOLEAN
+#define TRUE 1
+#define FALSE 0
+
 // 화면 크기
 #define SCR_WIDTH 100
 #define SCR_HEIGHT 40

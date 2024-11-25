@@ -16,14 +16,16 @@ unsigned __stdcall keyPressHandler(void* args)
 		if (GetAsyncKeyState(keyCodes[index]) & 0x8000)
 		{
 			// 해당 키가 눌린 경우
-			backBuffer[37][index] = '1';
-			backBuffer[38][index] = '1';
-			keyDown[index] = '1'; // 키를 누른 상태
+			backBuffer[37][index] = TRUE;
+			backBuffer[38][index] = TRUE;
+			keyDown[index] = TRUE; // 키를 누른 상태
 		}
 		else
 		{
-			keyDown[index] = '\0';
-			keyState[index] = '1'; // 꾹 누르기 방지
+			backBuffer[37][index] = FALSE;
+			backBuffer[38][index] = FALSE;
+			keyDown[index] = FALSE;
+			keyState[index] = TRUE; // 꾹 누르기 방지
 		}
 		Sleep(1);
 	}

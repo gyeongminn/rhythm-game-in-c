@@ -86,33 +86,42 @@ void renderBuffer(void)
 	{
 		for (int x = 0; x < 4; x++)
 		{
-			if (backBuffer[y][x] != frontBuffer[y][x])
+			// backBuffer와 frontBuffer가 다를 때만 노트를 그려 화면 렌더링을 최적화
+			if (backBuffer[y][x] == frontBuffer[y][x])
 			{
-				if (y == 36) continue;
-				moveCursor(x * 12 + 27, y);
-				if (backBuffer[y][x] == '\0')
-				{
-					changeTextColor(WHITE, BLACK);
-					printf("          ");
-				}
-				else
-				{
-					switch (x)
-					{
-					case 0: changeTextColor(WHITE, RED1);
-						break;
-					case 1: changeTextColor(WHITE, BLUE1);
-						break;
-					case 2: changeTextColor(WHITE, GREEN1);
-						break;
-					case 3: changeTextColor(WHITE, YELLOW1);
-						break;
-					default: changeTextColor(WHITE, BLACK);
-						break;
-					}
-					printf("          ");
-				}
+				continue;
 			}
+
+			// 노트 판정선 부분은 렌더링하지 않음
+			if (y == 36)
+			{
+				continue;
+			}
+
+			// 노트 지우기
+			moveCursor(x * 12 + 27, y);
+			if (!backBuffer[y][x])
+			{
+				changeTextColor(WHITE, BLACK);
+				printf("          ");
+				continue;
+			}
+
+			// 노트 그리기
+			switch (x)
+			{
+			case 0: changeTextColor(WHITE, RED1);
+				break;
+			case 1: changeTextColor(WHITE, BLUE1);
+				break;
+			case 2: changeTextColor(WHITE, GREEN1);
+				break;
+			case 3: changeTextColor(WHITE, YELLOW1);
+				break;
+			default: changeTextColor(WHITE, BLACK);
+				break;
+			}
+			printf("          ");
 		}
 	}
 
@@ -122,7 +131,6 @@ void renderBuffer(void)
 		for (int x = 0; x < 4; x++)
 		{
 			frontBuffer[y][x] = backBuffer[y][x];
-			backBuffer[y][x] = '\0';
 		}
 	}
 }
@@ -153,7 +161,8 @@ void drawMainMenu(void)
 void drawMap(int songIndex)
 {
 	moveCursor(2, 1);
-	printf("%s\n\n  템포(BPM) : %d\n\n  난이도 : %s", songs[songIndex].titleName, songs[songIndex].bpm, getLevelName(songIndex));
+	printf("%s\n\n  템포(BPM) : %d\n\n  난이도 : %s", songs[songIndex].titleName, songs[songIndex].bpm,
+	       getLevelName(songIndex));
 	changeTextColor(WHITE, BLACK);
 	drawBox(24, 36, 74, 39);
 	drawBox(24, 0, 74, 39);
@@ -327,7 +336,7 @@ int selectMainMenu(void)
 
 char* getLevelName(int level)
 {
-	static const char *levelNames[] = {"EASY", "NORMAL", "HARD"};
+	static const char* levelNames[] = {"EASY", "NORMAL", "HARD"};
 	return levelNames[level];
 }
 

@@ -22,9 +22,9 @@ int debugMode = NO_DEBUG_MODE;
 void startGame(int songIndex)
 {
 	unsigned int score = 0;
-	int i = 0, j, combo = 0, miss = 0, m = 0;
+	int i = 0, j, combo = 0, missingCount = 0;
 	int score_p = 0, score_g = 0, score_m = 0;
-	int tmp[4] = {0};
+	char shouldRemoveNotes[4] = {0};
 	char buf1[2200] = {0}; // 노트 파일 저장
 	char buf2[2200] = {0};
 	char buf3[2200] = {0};
@@ -74,12 +74,12 @@ void startGame(int songIndex)
 	clock_t now = clock();
 	while (1)
 	{
-		if (m > 0)
+		if (missingCount > 0)
 		{
-			m++;
-			if (m > 5)
+			missingCount++;
+			if (missingCount > 5)
 			{
-				m = 0;
+				missingCount = 0;
 				moveCursor(78, 5);
 				printf("          ");
 			}
@@ -88,95 +88,95 @@ void startGame(int songIndex)
 		// 노트 그리기 (더블 버퍼링)
 		for (j = i; j >= 0; j--)
 		{
-			if (j >= 36) j = 36;
-			if (buf1[i - j] == '1')
-				backBuffer[j][0] = '1';
-			if (buf2[i - j] == '1')
-				backBuffer[j][1] = '1';
-			if (buf3[i - j] == '1')
-				backBuffer[j][2] = '1';
-			if (buf4[i - j] == '1')
-				backBuffer[j][3] = '1';
+			if (j >= 36)
+			{
+				j = 36;
+			}
+			backBuffer[j][0] = buf1[i - j] == '1';
+			backBuffer[j][1] = buf2[i - j] == '1';
+			backBuffer[j][2] = buf3[i - j] == '1';
+			backBuffer[j][3] = buf4[i - j] == '1';
 		}
 
 		for (j = 0; j < 4; j++)
 		{
-			if (tmp[j] == 1)
+			if (shouldRemoveNotes[j])
 			{
 				// 미리 노트를 눌렀으면 지우기
-				backBuffer[36][j] = '\0';
-				frontBuffer[36][j] = '\0';
-				tmp[j] = 0;
+				backBuffer[36][j] = FALSE;
+				frontBuffer[36][j] = FALSE;
+
+				shouldRemoveNotes[j] = FALSE;
 			}
 		}
 
 		renderBuffer();
 
-		miss = 0;
+		int miss = 0;
 		changeTextColor(WHITE, BLACK);
 
 		// 키 판정 & 점수 계산
 		for (int k = 0; k < 4; k++)
 		{
-			if (frontBuffer[36][k] == '1') miss++;
-			if (keyDown[k] == '1')
+			if (frontBuffer[36][k]) miss++;
+			if (keyDown[k])
 			{
-				if (keyState[k] == '1')
+				if (keyState[k])
 				{
 					// 노트가 없을 때 누른 경우
-					if (frontBuffer[35][k] == '\0' && frontBuffer[36][k] == '\0')
+					if (!frontBuffer[35][k] && !frontBuffer[36][k])
 					{
-						keyState[k] = '\0';
+						keyState[k] = FALSE;
 					}
 					// 롱노트를 빠르게 누른 경우
-					else if (frontBuffer[34][k] == '1' && frontBuffer[35][k] == '1')
+					else if (frontBuffer[34][k] && frontBuffer[35][k])
 					{
 						combo++;
 						miss--;
 						score_g++;
 						score += (combo / 10 + 1) * 50; // 점수계산식
-						tmp[k] = 1; // 지울 노트를 저장
-						m = 1;
+						shouldRemoveNotes[k] = TRUE; // 지울 노트를 저장
+						missingCount = 1;
 						moveCursor(78, 5);
 						printf("GOOD!     ");
 					}
 					// 롱노트를 누른 경우
-					else if (frontBuffer[35][k] == '1' && frontBuffer[36][k] == '1')
+					else if (frontBuffer[35][k] && frontBuffer[36][k])
 					{
 						combo++;
 						miss--;
 						score_p++;
 						score += (combo / 10 + 1) * 100;
-						m = 1;
+						missingCount = 1;
 						moveCursor(78, 5);
 						printf("EXCELLENT!");
 					}
 					// 조금 빠르게 누른 경우
-					else if (frontBuffer[35][k] == '1' && frontBuffer[36][k] == '\0')
+					else if (frontBuffer[35][k] && !frontBuffer[36][k])
 					{
 						combo++;
 						score_g++;
 						score += (combo / 10 + 1) * 50;
-						keyState[k] = '\0';
-						tmp[k] = 1; // 지울 노트를 저장
-						m = 1;
+						keyState[k] = FALSE;
+						shouldRemoveNotes[k] = TRUE; // 지울 노트를 저장
+						missingCount = 1;
 						moveCursor(78, 5);
 						printf("GOOD!     ");
 					}
 					// 정확히 누른 경우
-					else if (frontBuffer[36][k] == '1')
+					else if (frontBuffer[36][k])
 					{
 						combo++;
 						miss--;
 						score_p++;
 						score += (combo / 10 + 1) * 100;
-						keyState[k] = '\0';
-						m = 1;
+						keyState[k] = FALSE;
+						missingCount = 1;
 						moveCursor(78, 5);
 						printf("EXCELLENT!");
 					}
 				}
-				keyDown[k] = '\0';
+				keyDown[k] = FALSE;
 			}
 		}
 
@@ -277,22 +277,21 @@ void writeNoteMode(int songIndex)
 		renderBuffer();
 
 		// 키 판정 & 노트 기록
-		buf1[i] = (keyDown[0] == '1') ? '1' : '0';
-		buf2[i] = (keyDown[1] == '1') ? '1' : '0';
-		buf3[i] = (keyDown[2] == '1') ? '1' : '0';
-		buf4[i] = (keyDown[3] == '1') ? '1' : '0';
+		buf1[i] = keyDown[0];
+		buf2[i] = keyDown[1];
+		buf3[i] = keyDown[2];
+		buf4[i] = keyDown[3];
 
 		// 키 상태 리셋
 		for (int k = 0; k < 4; k++)
 		{
-			if (keyDown[k] == '1')
-			{
-				keyDown[k] = '\0';
-			}
+			keyDown[k] = FALSE;
 		}
 
-		if (i > songs[songIndex].endTime) break;
-		i++;
+		if (i++ > songs[songIndex].endTime)
+		{
+			break;
+		}
 
 		// 딜레이가 항상 일정하도록 설정
 		now2 = clock();
