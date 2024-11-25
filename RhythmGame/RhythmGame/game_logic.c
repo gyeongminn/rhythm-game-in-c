@@ -14,9 +14,9 @@
 
 #pragma comment(lib, "winmm.lib")
 
-// 게임 모드 및 디버그 모드 변수 정의
-int gameMode = NORMAL_GAME_MODE;
-int debugMode = NO_DEBUG_MODE;
+char gameMode = NORMAL_GAME_MODE;
+char debugMode = NO_DEBUG_MODE;
+volatile char isGameRunning = FALSE;
 
 // 게임 시작 함수 구현
 void startGame(int songIndex)
@@ -34,46 +34,24 @@ void startGame(int songIndex)
 		buffer[k] = (char*)malloc(eachBufferSize * sizeof(char));
 	}
 
+	// 노트 파일 읽어오기
 	FILE* fp;
 	if ((fp = fopen(songs[songIndex].noteFileName, "r")) == NULL)
 	{
-		// 맵파일 읽어오기
 		printf("맵파일을 열 수 없습니다.\n");
 		return;
 	}
-
-	// 노트 파일 읽어오기
 	for (int k = 0; k < 4; k++)
 	{
 		fgets(buffer[k], eachBufferSize, fp);
 	}
 	fclose(fp);
 
-	// 키 입력 쓰레드 설정
-	unsigned int threadIDs[4];
-	for (int t = 0; t < 4; t++)
-	{
-		_beginthreadex(NULL, 0, keyPressHandler, &t, 0, &threadIDs[t]);
-		Sleep(10);
-	}
-
+	// 게임 시작
+	isGameRunning = TRUE;
+	createKeyPressThreads();
 	drawMap(songIndex);
-
-	// 노래 재생
-	switch (songIndex)
-	{
-	case 0:
-		PlaySound(TEXT("Assets/GoodDay.wav"), NULL, SND_ASYNC);
-		break;
-	case 1:
-		PlaySound(TEXT("Assets/NeverEndingStory.wav"), NULL, SND_ASYNC);
-		break;
-	case 2:
-		PlaySound(TEXT("Assets/Payphone.wav"), NULL, SND_ASYNC);
-		break;
-	default:
-		break;
-	}
+	playSong(songIndex);
 
 	clock_t now = clock();
 	while (1)
@@ -222,7 +200,8 @@ void startGame(int songIndex)
 	}
 
 	// 종료
-	PlaySound(NULL, 0, 0);
+	isGameRunning = FALSE;
+	stopSong();
 	changeTextColor(WHITE, BLACK);
 	clearWindow();
 	drawScore(score, score_p, score_g, score_m);
@@ -239,30 +218,17 @@ void startGame(int songIndex)
 // 노트 쓰기 모드 구현
 void writeNoteMode(int songIndex)
 {
-	int i = 0;
-	DWORD real_delay;
-	clock_t now, now2;
-
 	FILE* fp;
 	if ((fp = fopen("Assets/note.txt", "w")) == NULL)
 	{
-		// 노트 파일 쓰기
 		printf("노트 파일을 열 수 없습니다.\n");
 		return;
 	}
 
-	// 키 입력 쓰레드 설정
-	unsigned int threadIDs[4];
-	int indices[4] = {0, 1, 2, 3};
-	for (int t = 0; t < 4; t++)
-	{
-		_beginthreadex(NULL, 0, keyPressHandler, &indices[t], 0, &threadIDs[t]);
-		Sleep(10); // 스레드 인덱스 전달 안정성 확보
-	}
-
+	// 게임 시작
+	isGameRunning = TRUE;
+	createKeyPressThreads();
 	drawMap(songIndex);
-
-	// 노래 재생
 	playSong(songIndex);
 
 	// 동적 메모리 할당: buffer[4][2200]
@@ -273,9 +239,10 @@ void writeNoteMode(int songIndex)
 		buffer[k] = (char*)malloc(eachBufferSize * sizeof(char));
 	}
 
+	int i = 0;
 	while (1)
 	{
-		now = clock();
+		clock_t now = clock();
 		renderBuffer();
 
 		// 키 판정 & 노트 기록
@@ -296,8 +263,8 @@ void writeNoteMode(int songIndex)
 		}
 
 		// 딜레이가 항상 일정하도록 설정
-		now2 = clock();
-		real_delay = songs[songIndex].delayTime - (now2 - now);
+		clock_t now2 = clock();
+		DWORD real_delay = songs[songIndex].delayTime - (now2 - now);
 		if (debugMode == USE_DEBUG_MODE)
 		{
 			changeTextColor(WHITE, BLACK);
@@ -316,7 +283,8 @@ void writeNoteMode(int songIndex)
 	fclose(fp);
 
 	// 종료
-	PlaySound(NULL, 0, 0);
+	isGameRunning = FALSE;
+	stopSong();
 	changeTextColor(WHITE, BLACK);
 	clearWindow();
 	moveCursor(35, 10);
@@ -347,4 +315,24 @@ void playSong(int songIndex)
 	default:
 		break;
 	}
+}
+
+void stopSong()
+{
+	PlaySound(NULL, 0, 0);
+}
+
+// 키보드 입력 쓰레드 생성 함수
+void createKeyPressThreads()
+{
+    int indices[4];
+    for (int t = 0; t < 4; t++)
+    {
+        indices[t] = t;
+        if (_beginthreadex(NULL, 0, keyPressHandler, &indices[t], 0, NULL) == 0)
+        {
+            perror("Failed to create thread");
+        }
+        Sleep(10); // 스레드 생성 안정성을 위해 딜레이
+    }
 }
