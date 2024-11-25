@@ -25,12 +25,16 @@ void startGame(int songIndex)
 	int i = 0, j, combo = 0, missingCount = 0;
 	int score_p = 0, score_g = 0, score_m = 0;
 	char shouldRemoveNotes[4] = {0};
-	char buf1[2200] = {0}; // 노트 파일 저장
-	char buf2[2200] = {0};
-	char buf3[2200] = {0};
-	char buf4[2200] = {0};
-	FILE* fp;
 
+	// 동적 메모리 할당: buffer[4][2200]
+	const int eachBufferSize = 2200;
+	char** buffer = (char**)malloc(4 * sizeof(char*));
+	for (int k = 0; k < 4; k++)
+	{
+		buffer[k] = (char*)malloc(eachBufferSize * sizeof(char));
+	}
+
+	FILE* fp;
 	if ((fp = fopen(songs[songIndex].noteFileName, "r")) == NULL)
 	{
 		// 맵파일 읽어오기
@@ -39,10 +43,10 @@ void startGame(int songIndex)
 	}
 
 	// 노트 파일 읽어오기
-	fgets(buf1, sizeof(buf1), fp);
-	fgets(buf2, sizeof(buf2), fp);
-	fgets(buf3, sizeof(buf3), fp);
-	fgets(buf4, sizeof(buf4), fp);
+	for (int k = 0; k < 4; k++)
+	{
+		fgets(buffer[k], eachBufferSize, fp);
+	}
 	fclose(fp);
 
 	// 키 입력 쓰레드 설정
@@ -88,14 +92,14 @@ void startGame(int songIndex)
 		// 노트 그리기 (더블 버퍼링)
 		for (j = i; j >= 0; j--)
 		{
-			if (j >= 36)
+			if (j >= JUDGE_LINE_Y)
 			{
-				j = 36;
+				j = JUDGE_LINE_Y;
 			}
-			backBuffer[j][0] = buf1[i - j] == '1';
-			backBuffer[j][1] = buf2[i - j] == '1';
-			backBuffer[j][2] = buf3[i - j] == '1';
-			backBuffer[j][3] = buf4[i - j] == '1';
+			for (int k = 0; k < 4; k++)
+			{
+				backBuffer[j][k] = buffer[k][i - j] == '1';
+			}
 		}
 
 		for (j = 0; j < 4; j++)
@@ -103,8 +107,8 @@ void startGame(int songIndex)
 			if (shouldRemoveNotes[j])
 			{
 				// 미리 노트를 눌렀으면 지우기
-				backBuffer[36][j] = FALSE;
-				frontBuffer[36][j] = FALSE;
+				backBuffer[JUDGE_LINE_Y][j] = FALSE;
+				frontBuffer[JUDGE_LINE_Y][j] = FALSE;
 
 				shouldRemoveNotes[j] = FALSE;
 			}
@@ -118,13 +122,13 @@ void startGame(int songIndex)
 		// 키 판정 & 점수 계산
 		for (int k = 0; k < 4; k++)
 		{
-			if (frontBuffer[36][k]) miss++;
+			if (frontBuffer[JUDGE_LINE_Y][k]) miss++;
 			if (keyDown[k])
 			{
 				if (keyState[k])
 				{
 					// 노트가 없을 때 누른 경우
-					if (!frontBuffer[35][k] && !frontBuffer[36][k])
+					if (!frontBuffer[35][k] && !frontBuffer[JUDGE_LINE_Y][k])
 					{
 						keyState[k] = FALSE;
 					}
@@ -141,7 +145,7 @@ void startGame(int songIndex)
 						printf("GOOD!     ");
 					}
 					// 롱노트를 누른 경우
-					else if (frontBuffer[35][k] && frontBuffer[36][k])
+					else if (frontBuffer[35][k] && frontBuffer[JUDGE_LINE_Y][k])
 					{
 						combo++;
 						miss--;
@@ -152,7 +156,7 @@ void startGame(int songIndex)
 						printf("EXCELLENT!");
 					}
 					// 조금 빠르게 누른 경우
-					else if (frontBuffer[35][k] && !frontBuffer[36][k])
+					else if (frontBuffer[35][k] && !frontBuffer[JUDGE_LINE_Y][k])
 					{
 						combo++;
 						score_g++;
@@ -164,7 +168,7 @@ void startGame(int songIndex)
 						printf("GOOD!     ");
 					}
 					// 정확히 누른 경우
-					else if (frontBuffer[36][k])
+					else if (frontBuffer[JUDGE_LINE_Y][k])
 					{
 						combo++;
 						miss--;
@@ -223,20 +227,23 @@ void startGame(int songIndex)
 	clearWindow();
 	drawScore(score, score_p, score_g, score_m);
 	clearWindow();
+
+	// 메모리 해제
+	for (int k = 0; k < 4; k++)
+	{
+		free(buffer[k]);
+	}
+	free(buffer);
 }
 
 // 노트 쓰기 모드 구현
 void writeNoteMode(int songIndex)
 {
 	int i = 0;
-	char buf1[2200] = {0}; // 노트 파일 저장
-	char buf2[2200] = {0};
-	char buf3[2200] = {0};
-	char buf4[2200] = {0};
 	DWORD real_delay;
 	clock_t now, now2;
-	FILE* fp;
 
+	FILE* fp;
 	if ((fp = fopen("Assets/note.txt", "w")) == NULL)
 	{
 		// 노트 파일 쓰기
@@ -256,19 +263,14 @@ void writeNoteMode(int songIndex)
 	drawMap(songIndex);
 
 	// 노래 재생
-	switch (songIndex)
+	playSong(songIndex);
+
+	// 동적 메모리 할당: buffer[4][2200]
+	const int eachBufferSize = 2200;
+	char** buffer = (char**)malloc(4 * sizeof(char*));
+	for (int k = 0; k < 4; k++)
 	{
-	case 0:
-		PlaySound(TEXT("Assets/GoodDay.wav"), NULL, SND_ASYNC);
-		break;
-	case 1:
-		PlaySound(TEXT("Assets/NeverEndingStory.wav"), NULL, SND_ASYNC);
-		break;
-	case 2:
-		PlaySound(TEXT("Assets/Payphone.wav"), NULL, SND_ASYNC);
-		break;
-	default:
-		break;
+		buffer[k] = (char*)malloc(eachBufferSize * sizeof(char));
 	}
 
 	while (1)
@@ -277,10 +279,10 @@ void writeNoteMode(int songIndex)
 		renderBuffer();
 
 		// 키 판정 & 노트 기록
-		buf1[i] = keyDown[0];
-		buf2[i] = keyDown[1];
-		buf3[i] = keyDown[2];
-		buf4[i] = keyDown[3];
+		for (int k = 0; k < 4; k++)
+		{
+			buffer[k][i] = keyDown[k];
+		}
 
 		// 키 상태 리셋
 		for (int k = 0; k < 4; k++)
@@ -306,13 +308,11 @@ void writeNoteMode(int songIndex)
 	}
 
 	// 노트 파일 저장
-	fputs(buf1, fp);
-	fputs("\n", fp);
-	fputs(buf2, fp);
-	fputs("\n", fp);
-	fputs(buf3, fp);
-	fputs("\n", fp);
-	fputs(buf4, fp);
+	for (int k = 0; k < 4; k++)
+	{
+		fputs(buffer[k], fp);
+		fputs("\n", fp);
+	}
 	fclose(fp);
 
 	// 종료
@@ -322,4 +322,29 @@ void writeNoteMode(int songIndex)
 	moveCursor(35, 10);
 	printf("노트가 저장되었습니다.");
 	Sleep(4000);
+
+	// 메모리 해제
+	for (int k = 0; k < 4; k++)
+	{
+		free(buffer[k]);
+	}
+	free(buffer);
+}
+
+void playSong(int songIndex)
+{
+	switch (songIndex)
+	{
+	case 0:
+		PlaySound(TEXT("Assets/GoodDay.wav"), NULL, SND_ASYNC);
+		break;
+	case 1:
+		PlaySound(TEXT("Assets/NeverEndingStory.wav"), NULL, SND_ASYNC);
+		break;
+	case 2:
+		PlaySound(TEXT("Assets/Payphone.wav"), NULL, SND_ASYNC);
+		break;
+	default:
+		break;
+	}
 }

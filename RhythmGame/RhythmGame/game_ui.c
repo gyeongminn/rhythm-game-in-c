@@ -7,8 +7,8 @@
 #include <Windows.h>
 
 // 외부 변수
-char frontBuffer[SCR_HEIGHT][4] = {0};
-char backBuffer[SCR_HEIGHT][4] = {0};
+char frontBuffer[SCREEN_HEIGHT][4] = {0};
+char backBuffer[SCREEN_HEIGHT][4] = {0};
 
 // 메인 메뉴 아스키아트
 const char* rhythmGameArt[19] = {
@@ -82,7 +82,7 @@ void removeBox(int x1, int y1, int x2, int y2)
 // 더블 버퍼 렌더링
 void renderBuffer(void)
 {
-	for (int y = 2; y < SCR_HEIGHT; y++)
+	for (int y = 2; y < SCREEN_HEIGHT; y++)
 	{
 		for (int x = 0; x < 4; x++)
 		{
@@ -93,7 +93,7 @@ void renderBuffer(void)
 			}
 
 			// 노트 판정선 부분은 렌더링하지 않음
-			if (y == 36)
+			if (y == JUDGE_LINE_Y)
 			{
 				continue;
 			}
@@ -126,7 +126,7 @@ void renderBuffer(void)
 	}
 
 	// 백버퍼을 프론트버퍼로 복사하고 백버퍼 초기화
-	for (int y = 2; y < SCR_HEIGHT; y++)
+	for (int y = 2; y < SCREEN_HEIGHT; y++)
 	{
 		for (int x = 0; x < 4; x++)
 		{
@@ -164,8 +164,8 @@ void drawMap(int songIndex)
 	printf("%s\n\n  템포(BPM) : %d\n\n  난이도 : %s", songs[songIndex].titleName, songs[songIndex].bpm,
 	       getLevelName(songIndex));
 	changeTextColor(WHITE, BLACK);
-	drawBox(24, 36, 74, 39);
-	drawBox(24, 0, 74, 39);
+	drawBox(24, JUDGE_LINE_Y, 74, SCREEN_HEIGHT - 1);
+	drawBox(24, 0, 74, SCREEN_HEIGHT - 1);
 	moveCursor(32, 38);
 	printf("D           F           J           K");
 }
@@ -292,7 +292,7 @@ void drawHelp(void)
 	_getch();
 	clearWindow();
 	drawMap(0); // 기본 맵 그리기
-	moveCursor(76, 36);
+	moveCursor(76, JUDGE_LINE_Y);
 	printf("← 여기가 판정선입니다.");
 	_getch();
 	clearWindow();

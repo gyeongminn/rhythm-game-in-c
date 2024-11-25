@@ -5,9 +5,12 @@
 #define TRUE 1
 #define FALSE 0
 
-// 화면 크기
-#define SCR_WIDTH 100
-#define SCR_HEIGHT 40
+// 화면 정의
+#define SCREEN_WIDTH 100
+#define SCREEN_HEIGHT 40
+#define JUDGE_LINE_Y 36
+
+// 노래 정의
 #define NUM_SONGS 3
 
 // 색상 정의

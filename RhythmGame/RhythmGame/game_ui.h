@@ -4,8 +4,8 @@
 #include "constants.h"
 
 // 외부 버퍼
-extern char frontBuffer[SCR_HEIGHT][4];
-extern char backBuffer[SCR_HEIGHT][4];
+extern char frontBuffer[SCREEN_HEIGHT][4];
+extern char backBuffer[SCREEN_HEIGHT][4];
 
 // 메인 메뉴 아스키아트
 extern const char* rhythmGameArt[19];
