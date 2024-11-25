@@ -52,9 +52,8 @@ In the settings menu, you can enable or disable two options:
 
 ---
 
-# We recommend changing console properties and playing the game with the following settings:
+# Console Settings
 
-- Layout - Screen Buffer Size: Width 100, Height 41
 - Layout - Window Size: Width 100, Height 41
 
 If you have any questions or need further assistance, feel free to ask.
