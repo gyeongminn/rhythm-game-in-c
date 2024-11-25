@@ -125,7 +125,7 @@ void renderBuffer(void)
 		}
 	}
 
-	// 백버퍼을 프론트버퍼로 복사하고 백버퍼 초기화
+	// backBuffer를 frontBuffer 복사하고 backBuffer 초기화
 	for (int y = 2; y < SCREEN_HEIGHT; y++)
 	{
 		for (int x = 0; x < 4; x++)
