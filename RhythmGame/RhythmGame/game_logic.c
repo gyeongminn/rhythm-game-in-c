@@ -31,7 +31,7 @@ void startGame(int songIndex)
 	char buf4[2200] = {0};
 	FILE* fp;
 
-	if ((fp = fopen(songs[songIndex].file, "r")) == NULL)
+	if ((fp = fopen(songs[songIndex].noteFileName, "r")) == NULL)
 	{
 		// 맵파일 읽어오기
 		printf("맵파일을 열 수 없습니다.\n");

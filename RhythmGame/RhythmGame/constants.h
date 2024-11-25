@@ -36,5 +36,10 @@ typedef enum
 #define RIGHT   0x4D
 #define ENTER   13
 
+// 노래 난이도 정으
+#define EASY 0
+#define NORMAL 1
+#define HARD 2
+
 #endif
 #pragma once

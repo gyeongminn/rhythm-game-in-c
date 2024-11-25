@@ -145,13 +145,15 @@ void drawMainMenu(void)
 	moveCursor(45, 33);
 	printf("나가기\n");
 	drawBox(30, 23, 64, 25);
+	moveCursor(85, 38);
+	printf("2171333 이경민");
 }
 
 // 맵 그리기
 void drawMap(int songIndex)
 {
 	moveCursor(2, 1);
-	printf("%s\n\n  템포(BPM) : %d\n\n  난이도 : %s", songs[songIndex].title, songs[songIndex].bpm, songs[songIndex].level);
+	printf("%s\n\n  템포(BPM) : %d\n\n  난이도 : %s", songs[songIndex].titleName, songs[songIndex].bpm, getLevelName(songIndex));
 	changeTextColor(WHITE, BLACK);
 	drawBox(24, 36, 74, 39);
 	drawBox(24, 0, 74, 39);
@@ -323,6 +325,12 @@ int selectMainMenu(void)
 	}
 }
 
+char* getLevelName(int level)
+{
+	static const char *levelNames[] = {"EASY", "NORMAL", "HARD"};
+	return levelNames[level];
+}
+
 // 노래 선택 창 구현
 void selectSong(void)
 {
@@ -353,9 +361,9 @@ void selectSong(void)
 		{
 			moveCursor(i * 31, 14);
 			moveCursor(8 + i * 30 + i / 2 * 3 - j, 14);
-			printf("  %s", songs[i].title);
+			printf("  %s", songs[i].titleName);
 			moveCursor(8 + i * 30 + i / 2 * 3 - j, 16);
-			printf("  난이도 : %s", songs[i].level);
+			printf("  난이도 : %s", getLevelName(i));
 			moveCursor(8 + i * 30 + i / 2 * 3 - j, 18);
 			printf("  템포(BPM) : %d", songs[i].bpm);
 			moveCursor(8 + i * 30 + i / 2 * 3 - j, 20);
