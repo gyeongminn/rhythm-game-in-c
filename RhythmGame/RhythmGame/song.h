@@ -1,15 +1,15 @@
-#ifndef SONGS_H
-#define SONGS_H
+#ifndef SONG_H
+#define SONG_H
 
 #include "constants.h"
 
-typedef struct
+typedef struct Song
 {
-	char titleName[25];
-	char noteFileName[23];
+	char titleName[32];
+	char noteFileName[32];
 	int bpm;
 	int level;
-	char genre[10];
+	char genre[16];
 	int endTime;
 	int delayTime;
 } Song;
@@ -19,5 +19,8 @@ static const Song songs[NUM_SONGS] = {
 	{"부활 - 네버엔딩스토리", "Assets/NeverEndingStory.txt", 61, EASY, "발라드", 1550, 156},
 	{"Maroon 5 - Payphone", "Assets/Payphone.txt", 110, HARD, "POP", 2160, 105}
 };
+
+void playSong(int songIndex);
+DWORD __stdcall playSongThread(LPVOID param);
 
 #endif

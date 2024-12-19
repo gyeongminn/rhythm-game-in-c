@@ -30,6 +30,15 @@
     <ClCompile Include="main.c">
       <Filter>소스 파일</Filter>
     </ClCompile>
+    <ClCompile Include="queue.c">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="note.c">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="song.c">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="utils.h">
@@ -47,7 +56,13 @@
     <ClInclude Include="constants.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
-    <ClInclude Include="songs.h">
+    <ClInclude Include="song.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="queue.h">
+      <Filter>헤더 파일</Filter>
+    </ClInclude>
+    <ClInclude Include="note.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
   </ItemGroup>

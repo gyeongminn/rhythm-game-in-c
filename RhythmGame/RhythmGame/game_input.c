@@ -1,7 +1,7 @@
-#include "game_input.h"
-#include "game_ui.h"
 #include <Windows.h>
 
+#include "game_input.h"
+#include "game_ui.h"
 #include "game_logic.h"
 
 // 키 코드 매핑
@@ -17,7 +17,7 @@ unsigned __stdcall keyPressHandler(void* args)
 	{
 		if (!isGameRunning)
 		{
-			 // 게임이 종료되었을 시 쓰레드 종료
+			// 게임이 종료되었을 시 쓰레드 종료
 			backBuffer[JUDGE_LINE_Y + 1][index] = FALSE;
 			backBuffer[JUDGE_LINE_Y + 2][index] = FALSE;
 			return 0;

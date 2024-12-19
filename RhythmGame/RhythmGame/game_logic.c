@@ -1,18 +1,15 @@
 #define _CRT_SECURE_NO_WARNINGS
 
+#include <stdio.h>
+#include <Windows.h>
+#include <process.h>
+
 #include "game_logic.h"
 #include "game_ui.h"
 #include "game_input.h"
-#include "songs.h"
+#include "song.h"
 #include "utils.h"
-#include <stdio.h>
-#include <stdlib.h>
-#include <time.h>
-#include <Windows.h>
-#include <mmsystem.h>
-#include <process.h>
-
-#pragma comment(lib, "winmm.lib")
+#include "note.h"
 
 char gameMode = NORMAL_GAME_MODE;
 char debugMode = NO_DEBUG_MODE;
@@ -22,143 +19,126 @@ volatile char isGameRunning = FALSE;
 void startGame(int songIndex)
 {
 	unsigned int score = 0;
-	int i = 0, j, combo = 0, missingCount = 0;
-	int score_p = 0, score_g = 0, score_m = 0;
+	int combo = 0, score_p = 0, score_g = 0, score_m = 0;
 	char shouldRemoveNotes[4] = {0};
 
-	// 동적 메모리 할당: buffer[4][2200]
-	const int eachBufferSize = 2200;
-	char** buffer = (char**)malloc(4 * sizeof(char*));
-	for (int k = 0; k < 4; k++)
-	{
-		buffer[k] = (char*)malloc(eachBufferSize * sizeof(char));
-	}
-
-	// 노트 파일 읽어오기
-	FILE* fp;
-	if ((fp = fopen(songs[songIndex].noteFileName, "r")) == NULL)
-	{
-		printf("맵파일을 열 수 없습니다.\n");
-		return;
-	}
-	for (int k = 0; k < 4; k++)
-	{
-		fgets(buffer[k], eachBufferSize, fp);
-	}
-	fclose(fp);
+	// 노트 읽어오기
+	Notes* notes = loadNotes(songs[songIndex].noteFileName);
 
 	// 게임 시작
 	isGameRunning = TRUE;
 	createKeyPressThreads();
 	drawMap(songIndex);
-	playSong(songIndex);
 
-	clock_t now = clock();
-	while (1)
+	// 노래 시작, 노래가 끝나면 isGameRunning = FALSE;
+	HANDLE songThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)playSongThread, &songIndex, 0, NULL);
+
+	// 동적 딜레이를 위한 게임 시작 시간 측정
+	DWORD gameStartTime = timeGetTime();
+
+	int iteration = 0;
+	while (isGameRunning)
 	{
-		if (missingCount > 0)
+		// 새로운 노트를 추가
+		for (int k = 0; k < KEY_SIZE; k++)
 		{
-			missingCount++;
-			if (missingCount > 5)
+			if (!isEmpty(&notes->queues[k]))
 			{
-				missingCount = 0;
-				moveCursor(78, 5);
-				printf("          ");
+				backBuffer[NOTE_START_Y][k] = dequeue(&notes->queues[k]);
+			}
+			else // 큐가 비어있으면 노트가 없는 것으로 간주
+			{
+				backBuffer[NOTE_START_Y][k] = FALSE;
 			}
 		}
 
-		// 노트 그리기 (더블 버퍼링)
-		for (j = i; j >= 0; j--)
+		// 버퍼를 한 칸 아래로 내리며 복사
+		for (int y = NOTE_START_Y + 1; y <= JUDGE_LINE_Y; y++)
 		{
-			if (j >= JUDGE_LINE_Y)
+			for (int x = 0; x < KEY_SIZE; x++)
 			{
-				j = JUDGE_LINE_Y;
-			}
-			for (int k = 0; k < 4; k++)
-			{
-				backBuffer[j][k] = buffer[k][i - j] == '1';
+				backBuffer[y][x] = frontBuffer[y - 1][x];
 			}
 		}
 
-		for (j = 0; j < 4; j++)
+		for (int x = 0; x < KEY_SIZE; x++)
 		{
-			if (shouldRemoveNotes[j])
+			if (shouldRemoveNotes[x])
 			{
 				// 미리 노트를 눌렀으면 지우기
-				backBuffer[JUDGE_LINE_Y][j] = FALSE;
-				frontBuffer[JUDGE_LINE_Y][j] = FALSE;
+				backBuffer[JUDGE_LINE_Y][x] = FALSE;
+				frontBuffer[JUDGE_LINE_Y][x] = FALSE;
 
-				shouldRemoveNotes[j] = FALSE;
+				shouldRemoveNotes[x] = FALSE;
 			}
 		}
 
 		renderBuffer();
 
-		int miss = 0;
-		changeTextColor(WHITE, BLACK);
-
 		// 키 판정 & 점수 계산
-		for (int k = 0; k < 4; k++)
+		int miss = 0;
+		for (int k = 0; k < KEY_SIZE; k++)
 		{
-			if (frontBuffer[JUDGE_LINE_Y][k]) miss++;
-			if (keyDown[k])
+			if (frontBuffer[JUDGE_LINE_Y][k])
 			{
-				if (keyState[k])
-				{
-					// 노트가 없을 때 누른 경우
-					if (!frontBuffer[35][k] && !frontBuffer[JUDGE_LINE_Y][k])
-					{
-						keyState[k] = FALSE;
-					}
-					// 롱노트를 빠르게 누른 경우
-					else if (frontBuffer[34][k] && frontBuffer[35][k])
-					{
-						combo++;
-						miss--;
-						score_g++;
-						score += (combo / 10 + 1) * 50; // 점수계산식
-						shouldRemoveNotes[k] = TRUE; // 지울 노트를 저장
-						missingCount = 1;
-						moveCursor(78, 5);
-						printf("GOOD!     ");
-					}
-					// 롱노트를 누른 경우
-					else if (frontBuffer[35][k] && frontBuffer[JUDGE_LINE_Y][k])
-					{
-						combo++;
-						miss--;
-						score_p++;
-						score += (combo / 10 + 1) * 100;
-						missingCount = 1;
-						moveCursor(78, 5);
-						printf("EXCELLENT!");
-					}
-					// 조금 빠르게 누른 경우
-					else if (frontBuffer[35][k] && !frontBuffer[JUDGE_LINE_Y][k])
-					{
-						combo++;
-						score_g++;
-						score += (combo / 10 + 1) * 50;
-						keyState[k] = FALSE;
-						shouldRemoveNotes[k] = TRUE; // 지울 노트를 저장
-						missingCount = 1;
-						moveCursor(78, 5);
-						printf("GOOD!     ");
-					}
-					// 정확히 누른 경우
-					else if (frontBuffer[JUDGE_LINE_Y][k])
-					{
-						combo++;
-						miss--;
-						score_p++;
-						score += (combo / 10 + 1) * 100;
-						keyState[k] = FALSE;
-						missingCount = 1;
-						moveCursor(78, 5);
-						printf("EXCELLENT!");
-					}
-				}
+				miss++;
+			}
+
+			if (!keyDown[k])
+			{
+				continue;
+			}
+
+			if (!keyState[k])
+			{
 				keyDown[k] = FALSE;
+				continue;
+			}
+
+			// 노트가 없을 때 누른 경우
+			if (!frontBuffer[JUDGE_LINE_Y - 1][k] && !frontBuffer[JUDGE_LINE_Y][k])
+			{
+				keyState[k] = FALSE;
+			}
+			// 롱노트를 빠르게 누른 경우
+			else if (frontBuffer[JUDGE_LINE_Y - 2][k] && frontBuffer[JUDGE_LINE_Y - 1][k] &&
+				!frontBuffer[JUDGE_LINE_Y][k])
+			{
+				combo++;
+				miss--;
+				score_g++;
+				score += (combo / 10 + 1) * 50; // 점수 계산 식
+				shouldRemoveNotes[k] = TRUE; // 지울 노트를 저장
+				printInputState("GOOD!     ");
+			}
+			// 롱노트를 정확히 누른 경우
+			else if (frontBuffer[JUDGE_LINE_Y - 1][k] && frontBuffer[JUDGE_LINE_Y][k])
+			{
+				combo++;
+				miss--;
+				score_p++;
+				score += (combo / 10 + 1) * 100;
+				printInputState("EXCELLENT!");
+			}
+			// 조금 빠르게 누른 경우
+			else if (frontBuffer[JUDGE_LINE_Y - 1][k] && !frontBuffer[JUDGE_LINE_Y][k])
+			{
+				combo++;
+				score_g++;
+				score += (combo / 10 + 1) * 50;
+				keyState[k] = FALSE;
+				shouldRemoveNotes[k] = TRUE; // 지울 노트를 저장
+				printInputState("GOOD!     ");
+			}
+			// 정확히 누른 경우
+			else if (frontBuffer[JUDGE_LINE_Y][k])
+			{
+				combo++;
+				miss--;
+				score_p++;
+				score += (combo / 10 + 1) * 100;
+				keyState[k] = FALSE;
+				printInputState("EXCELLENT!");
 			}
 		}
 
@@ -168,51 +148,51 @@ void startGame(int songIndex)
 			combo = 0;
 		}
 
-		if (combo)
+		if (combo == 0)
 		{
-			moveCursor(78, 3);
-			printf("COMBO! x %d            ", combo);
-		}
-		else
-		{
-			moveCursor(78, 3);
-			printf("                    "); // 지우기
+			printInputState("          ");
 		}
 
-		moveCursor(78, 1);
-		printf("SCORE : %d            ", score);
+		printCombo(combo);
+		printScore(score);
 
-		if (i++ > songs[songIndex].endTime)
-		{
-			break;
-		}
+		// 동적 딜레이 계산
+		DWORD songDelay = (DWORD)songs[songIndex].delayTime;
+		DWORD estimatedDuration = songDelay * ++iteration;
+		DWORD realCurrentDuration = timeGetTime() - gameStartTime;
+		DWORD dynamicDelay = estimatedDuration > realCurrentDuration ? estimatedDuration - realCurrentDuration : 0;
 
-		// 딜레이가 항상 일정하도록 설정
-		clock_t now2 = clock();
-		DWORD real_delay = songs[songIndex].delayTime - (now2 - now);
+		// 딜레이가 너무 길거나 작지 않도록 조정 (노래 딜레이의 ±50%)
+		dynamicDelay = MIN(dynamicDelay, songDelay * 2);
+		dynamicDelay = MAX(dynamicDelay, songDelay / 2);
+
 		if (debugMode == USE_DEBUG_MODE)
 		{
-			moveCursor(78, 5);
-			printf("DELAY : %d / %d", (int)real_delay, songs[songIndex].delayTime);
+			moveCursor(78, 7);
+			printf("iteration : %d", iteration);
+			moveCursor(78, 8);
+			printf("DELAY : %lu / %d", dynamicDelay, songs[songIndex].delayTime);
+			moveCursor(78, 9);
+			printf("realTime : %lu", realCurrentDuration);
+			moveCursor(78, 10);
+			printf("estTime : %lu", estimatedDuration);
 		}
-		Sleep(real_delay);
-		now = clock();
-	}
 
-	// 종료
-	isGameRunning = FALSE;
-	stopSong();
+		Sleep(dynamicDelay);
+	}
+	
+	// 메모리 해제 및 쓰레드 종료
+	releaseNotes(notes);
+	CloseHandle(songThread);
+
+	// 점수 출력
 	changeTextColor(WHITE, BLACK);
 	clearWindow();
 	drawScore(score, score_p, score_g, score_m);
-	clearWindow();
 
-	// 메모리 해제
-	for (int k = 0; k < 4; k++)
-	{
-		free(buffer[k]);
-	}
-	free(buffer);
+	// 기록 저장 및 TOP 10 기록 표시
+    showRecord();
+	clearWindow();
 }
 
 // 노트 쓰기 모드 구현
@@ -225,30 +205,34 @@ void writeNoteMode(int songIndex)
 		return;
 	}
 
-	// 게임 시작
-	isGameRunning = TRUE;
-	createKeyPressThreads();
-	drawMap(songIndex);
-	playSong(songIndex);
-
-	// 동적 메모리 할당: buffer[4][2200]
-	const int eachBufferSize = 2200;
+	// 동적 메모리 할당: buffer[4][3000]
+	const int eachBufferSize = 3000;
 	char** buffer = (char**)malloc(4 * sizeof(char*));
 	for (int k = 0; k < 4; k++)
 	{
 		buffer[k] = (char*)malloc(eachBufferSize * sizeof(char));
 	}
 
-	int i = 0;
-	while (1)
+	// 게임 시작
+	isGameRunning = TRUE;
+	createKeyPressThreads();
+	drawMap(songIndex);
+
+	// 노래 시작, 노래가 끝나면 isGameRunning = FALSE;
+	HANDLE songThread = CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)playSongThread, &songIndex, 0, NULL);
+
+	// 동적 딜레이를 위한 게임 시작 시간 측정
+	DWORD gameStartTime = timeGetTime();
+
+	int iteration = 0;
+	while (isGameRunning)
 	{
-		clock_t now = clock();
 		renderBuffer();
 
 		// 키 판정 & 노트 기록
 		for (int k = 0; k < 4; k++)
 		{
-			buffer[k][i] = keyDown[k];
+			buffer[k][iteration] = keyDown[k];
 		}
 
 		// 키 상태 리셋
@@ -257,21 +241,29 @@ void writeNoteMode(int songIndex)
 			keyDown[k] = FALSE;
 		}
 
-		if (i++ > songs[songIndex].endTime)
-		{
-			break;
-		}
+		// 동적 딜레이 계산
+		DWORD songDelay = (DWORD)songs[songIndex].delayTime;
+		DWORD estimatedDuration = songDelay * ++iteration;
+		DWORD realCurrentDuration = timeGetTime() - gameStartTime;
+		DWORD dynamicDelay = estimatedDuration > realCurrentDuration ? estimatedDuration - realCurrentDuration : 0;
 
-		// 딜레이가 항상 일정하도록 설정
-		clock_t now2 = clock();
-		DWORD real_delay = songs[songIndex].delayTime - (now2 - now);
+		// 딜레이가 너무 길거나 작지 않도록 조정 (노래 딜레이의 ±50%)
+		dynamicDelay = MIN(dynamicDelay, songDelay * 2);
+		dynamicDelay = MAX(dynamicDelay, songDelay / 2);
+
 		if (debugMode == USE_DEBUG_MODE)
 		{
-			changeTextColor(WHITE, BLACK);
-			moveCursor(78, 5);
-			printf("DELAY : %d / %d", (int)real_delay, songs[songIndex].delayTime);
+			moveCursor(78, 7);
+			printf("iteration : %d", iteration);
+			moveCursor(78, 8);
+			printf("DELAY : %lu / %d", dynamicDelay, songs[songIndex].delayTime);
+			moveCursor(78, 9);
+			printf("realTime : %lu", realCurrentDuration);
+			moveCursor(78, 10);
+			printf("estTime : %lu", estimatedDuration);
 		}
-		Sleep(real_delay);
+
+		Sleep(dynamicDelay);
 	}
 
 	// 노트 파일 저장
@@ -283,13 +275,12 @@ void writeNoteMode(int songIndex)
 	fclose(fp);
 
 	// 종료
-	isGameRunning = FALSE;
-        stopSong();
 	changeTextColor(WHITE, BLACK);
 	clearWindow();
 	moveCursor(35, 10);
 	printf("노트가 저장되었습니다.");
 	Sleep(4000);
+	CloseHandle(songThread);
 
 	// 메모리 해제
 	for (int k = 0; k < 4; k++)
@@ -297,29 +288,6 @@ void writeNoteMode(int songIndex)
 		free(buffer[k]);
 	}
 	free(buffer);
-}
-
-void playSong(int songIndex)
-{
-	switch (songIndex)
-	{
-	case 0:
-		PlaySound(TEXT("Assets/GoodDay.wav"), NULL, SND_ASYNC);
-		break;
-	case 1:
-		PlaySound(TEXT("Assets/NeverEndingStory.wav"), NULL, SND_ASYNC);
-		break;
-	case 2:
-		PlaySound(TEXT("Assets/Payphone.wav"), NULL, SND_ASYNC);
-		break;
-	default:
-		break;
-	}
-}
-
-void stopSong()
-{
-	PlaySound(NULL, 0, 0);
 }
 
 // 키보드 입력 쓰레드 생성 함수

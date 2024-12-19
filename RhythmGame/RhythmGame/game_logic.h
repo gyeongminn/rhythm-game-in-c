@@ -13,8 +13,6 @@ extern volatile char isGameRunning;
 
 void startGame(int songIndex);
 void writeNoteMode(int songIndex);
-void playSong(int songIndex);
-void stopSong();
 void createKeyPressThreads();
 
 #endif

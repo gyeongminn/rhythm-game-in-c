@@ -18,12 +18,16 @@ void removeBox(int x1, int y1, int x2, int y2);
 void renderBuffer(void);
 void drawMainMenu(void);
 void drawMap(int songIndex);
+void showRecord();
 void drawHelp(void);
-void drawScore(int score, int score_p, int score_g, int score_m);
+void drawScore(unsigned int score, int score_p, int score_g, int score_m);
+void printInputState(const char* message);
+void printCombo(int combo);
+void printScore(unsigned int score);
 
 // 메뉴 선택 함수
 int selectMainMenu(void);
-void selectSong(void);
+void selectSongAndStartGame(void);
 void showOptions(void);
 
 #endif

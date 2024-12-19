@@ -11,7 +11,7 @@ int main(void)
 		switch (selection)
 		{
 		case 0:
-			selectSong();
+			selectSongAndStartGame();
 			break;
 		case 1:
 			showOptions();

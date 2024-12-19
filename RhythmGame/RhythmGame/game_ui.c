@@ -1,10 +1,11 @@
-﻿#include "game_logic.h"
-#include "game_ui.h"
-#include "utils.h"
-#include "songs.h"
-#include <stdio.h>
+﻿#include <stdio.h>
 #include <conio.h>
 #include <Windows.h>
+
+#include "game_logic.h"
+#include "game_ui.h"
+#include "utils.h"
+#include "song.h"
 
 // 외부 변수
 char frontBuffer[SCREEN_HEIGHT][4] = {0};
@@ -82,9 +83,9 @@ void removeBox(int x1, int y1, int x2, int y2)
 // 더블 버퍼 렌더링
 void renderBuffer(void)
 {
-	for (int y = 2; y < SCREEN_HEIGHT; y++)
+	for (int y = NOTE_START_Y; y < SCREEN_HEIGHT; y++)
 	{
-		for (int x = 0; x < 4; x++)
+		for (int x = 0; x < KEY_SIZE; x++)
 		{
 			// backBuffer와 frontBuffer가 다를 때만 노트를 그려 화면 렌더링을 최적화
 			if (backBuffer[y][x] == frontBuffer[y][x])
@@ -126,9 +127,9 @@ void renderBuffer(void)
 	}
 
 	// backBuffer를 frontBuffer 복사하고 backBuffer 초기화
-	for (int y = 2; y < SCREEN_HEIGHT; y++)
+	for (int y = NOTE_START_Y; y < SCREEN_HEIGHT; y++)
 	{
-		for (int x = 0; x < 4; x++)
+		for (int x = 0; x < KEY_SIZE; x++)
 		{
 			frontBuffer[y][x] = backBuffer[y][x];
 		}
@@ -171,7 +172,7 @@ void drawMap(int songIndex)
 }
 
 // 점수 출력
-void drawScore(int score, int score_p, int score_g, int score_m)
+void drawScore(unsigned int score, int score_p, int score_g, int score_m)
 {
 	int percent[3];
 	percent[0] = (int)((double)score_p / ((double)score_p + score_g + score_m) * 100);
@@ -232,7 +233,7 @@ void drawScore(int score, int score_p, int score_g, int score_m)
 		printf("Rank : D");
 	}
 	Sleep(100);
-	for (int i = 0; i <= score; i += 2)
+	for (int i = 0; i <= (int)score; i += 2)
 	{
 		moveCursor(23, 22);
 		printf("SCORE : %d", i);
@@ -273,6 +274,11 @@ void drawScore(int score, int score_p, int score_g, int score_m)
 	Sleep(10000);
 }
 
+void showRecord()
+{
+	
+}
+
 // 도움말 그리기
 void drawHelp(void)
 {
@@ -296,6 +302,37 @@ void drawHelp(void)
 	printf("← 여기가 판정선입니다.");
 	_getch();
 	clearWindow();
+}
+
+void printInputState(const char* message)
+{
+	changeTextColor(WHITE, BLACK);
+	moveCursor(78, 5);
+	printf(message);
+}
+
+void printCombo(const int combo)
+{
+	changeTextColor(WHITE, BLACK);
+
+	if (combo > 0)
+	{
+		moveCursor(78, 3);
+		printf("COMBO! x %d            ", combo);
+	}
+	else
+	{
+		// 공백을 출력하여 이전 출력값을 지운다
+		moveCursor(78, 3);
+		printf("                    ");
+	}
+}
+
+void printScore(const unsigned int score)
+{
+	changeTextColor(WHITE, BLACK);
+	moveCursor(78, 1);
+	printf("SCORE : %d            ", score);
 }
 
 // 메뉴 선택 함수 구현
@@ -341,14 +378,12 @@ char* getLevelName(int level)
 }
 
 // 노래 선택 창 구현
-void selectSong(void)
+void selectSongAndStartGame(void)
 {
 	// 애니메이션 효과
-	int i, j, n = 0;
-	unsigned char ch = 0;
-	for (i = 0; i < 19; i++)
+	for (int i = 0; i < 19; i++)
 	{
-		for (j = 0; j < 19 - i; j++)
+		for (int j = 0; j < 19 - i; j++)
 		{
 			moveCursor(0, j + 3);
 			printf("                                                                                             ");
@@ -357,16 +392,20 @@ void selectSong(void)
 		}
 		Sleep(50);
 	}
+
 	moveCursor(0, 2);
 	printf("                                                                                             ");
 	Sleep(300);
+
 	moveCursor(39, 5);
 	printf("노래를 선택해 주세요");
+
 	moveCursor(44, 30);
 	printf("뒤로가기");
-	for (i = 0; i < 3; i++)
+
+	for (int i = 0; i < 3; i++)
 	{
-		for (j = 5; j > 0; j--)
+		for (int j = 5; j > 0; j--)
 		{
 			moveCursor(i * 31, 14);
 			moveCursor(8 + i * 30 + i / 2 * 3 - j, 14);
@@ -380,22 +419,25 @@ void selectSong(void)
 			Sleep(70);
 		}
 	}
+
 	drawBox(3, 13, 29, 21);
-	int selected = 1;
+
+	int selected = 0;
 	while (1)
 	{
 		if (_kbhit())
 		{
 			// 키보드가 눌려져 있으면
-			ch = _getch();
+			unsigned char ch = _getch();
 			if (ch == SPECIAL1 || ch == SPECIAL2)
 			{
 				// 특수키
 				ch = _getch();
+
 				// 박스 제거
-				if (selected <= 3)
+				if (selected < 3)
 				{
-					removeBox(3 + (selected - 1) * 32, 13, 29 + (selected - 1) * 32, 21);
+					removeBox(3 + selected * 32, 13, 29 + selected * 32, 21);
 				}
 				else
 				{
@@ -404,21 +446,25 @@ void selectSong(void)
 
 				if (ch == LEFT)
 				{
-					selected = (selected - 1 + 4) % 4;
+					selected = (selected - 1 + 3) % 3;
 				}
 				else if (ch == RIGHT)
 				{
-					selected = (selected + 1) % 4;
+					selected = (selected + 1) % 3;
 				}
-				else if (ch == UP || ch == DOWN)
+				else if (ch == UP)
 				{
-					// 상하 이동 없이 좌우만 이동
+					selected = selected == 3 ? 1 : 3;
+				}
+				else if (ch == DOWN)
+				{
+					selected = selected == 3 ? 1 : 3;
 				}
 
 				// 박스 다시 그리기
-				if (selected >= 1 && selected <= 3)
+				if (selected < 3)
 				{
-					drawBox(3 + (selected - 1) * 32, 13, 29 + (selected - 1) * 32, 21);
+					drawBox(3 + selected * 32, 13, 29 + selected * 32, 21);
 				}
 				else
 				{
@@ -430,18 +476,18 @@ void selectSong(void)
 				changeTextColor(WHITE, BLACK);
 				clearWindow();
 
-				if (selected == 4)
+				if (selected == 3)
 				{
 					return;
 				}
 
 				if (gameMode == WRITE_NOTE_MODE)
 				{
-					writeNoteMode((selected - 1) % 3);
+					writeNoteMode(selected % 3);
 				}
 				else
 				{
-					startGame((selected - 1) % 3);
+					startGame(selected % 3);
 				}
 			}
 		}
@@ -452,13 +498,16 @@ void selectSong(void)
 void showOptions(void)
 {
 	int n = 0;
-	unsigned char ch = 0;
 	clearWindow();
+
 	moveCursor(48, 10);
 	printf("옵션");
+
 	moveCursor(40, 21);
 	printf("      뒤로가기");
+
 	drawBox(37, 14, 61, 16);
+
 	if (gameMode == WRITE_NOTE_MODE)
 	{
 		moveCursor(40, 15);
@@ -469,6 +518,7 @@ void showOptions(void)
 		moveCursor(40, 15);
 		printf("노트 찍기 모드   OFF");
 	}
+
 	if (debugMode == USE_DEBUG_MODE)
 	{
 		moveCursor(40, 18);
@@ -479,12 +529,13 @@ void showOptions(void)
 		moveCursor(40, 18);
 		printf("   디버깅 모드   OFF");
 	}
+
 	while (1)
 	{
 		if (_kbhit())
 		{
 			// 키보드가 눌려져 있으면
-			ch = _getch();
+			unsigned char ch = _getch();
 			if (ch == SPECIAL1 || ch == SPECIAL2)
 			{
 				// 특수키
@@ -492,11 +543,11 @@ void showOptions(void)
 				removeBox(37, 14 + n * 3, 61, 16 + n * 3);
 				if (ch == UP)
 				{
-					n = (n - 1 + 2) % 2;
+					n = (n - 1 + 3) % 3;
 				}
 				else if (ch == DOWN)
 				{
-					n = (n + 1) % 2;
+					n = (n + 1) % 3;
 				}
 				drawBox(37, 14 + n * 3, 61, 16 + n * 3);
 			}

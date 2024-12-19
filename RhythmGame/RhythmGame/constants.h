@@ -9,9 +9,13 @@
 #define SCREEN_WIDTH 100
 #define SCREEN_HEIGHT 40
 #define JUDGE_LINE_Y 36
+#define NOTE_START_Y 2
 
 // 노래 정의
 #define NUM_SONGS 3
+
+// 입력 가능한 키 개수 정의
+#define KEY_SIZE 4
 
 // 색상 정의
 typedef enum
